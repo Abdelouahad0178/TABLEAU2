@@ -17,7 +17,6 @@ const canvas = document.querySelector("canvas"),
     textProperties = document.querySelector(".text-properties"),
     ctx = canvas.getContext("2d", { willReadFrequently: true });
 
-// Variables globales avec valeurs par défaut
 let prevMouseX, prevMouseY, snapshot,
     isDrawing = false,
     selectedTool = "brush",
@@ -156,7 +155,7 @@ const addTextToCanvas = (e) => {
     }
 };
 
-// Fonction pour afficher/cacher les propriétés de texte
+// Fonction pour afficher/cacher les propriétés de texte et attacher l'événement pour ajouter du texte
 const toggleTextProperties = () => {
     if (textProperties.style.display === "none" || !textProperties.style.display) {
         textProperties.style.display = "block";
@@ -164,9 +163,16 @@ const toggleTextProperties = () => {
     } else {
         textProperties.style.display = "none";
         console.log("Propriétés de texte cachées.");
-        canvas.addEventListener("mousedown", addTextToCanvas, { once: true });
+
+        // Ajout d'écouteurs sur la zone de dessin uniquement après clic sur "Add Text"
+        canvas.addEventListener("mousedown", (e) => {
+            console.log("Événement mousedown détecté pour ajout de texte.");
+            addTextToCanvas(e);
+        }, { once: true });
+        
         canvas.addEventListener("touchstart", (e) => {
             e.preventDefault();
+            console.log("Événement touchstart détecté pour ajout de texte.");
             addTextToCanvas(e);
         }, { once: true });
     }
@@ -222,14 +228,21 @@ saveImg.addEventListener("click", () => {
 });
 
 // Gestion du bouton Add Text
-addTextBtn.addEventListener("click", toggleTextProperties);
+addTextBtn.addEventListener("click", () => {
+    console.log("Bouton Add Text cliqué.");
+    toggleTextProperties();
+});
 
 // Début du dessin lors du clic de la souris ou d'un toucher
-canvas.addEventListener("mousedown", startDraw);
+canvas.addEventListener("mousedown", (e) => {
+    if (selectedTool !== 'brush') return; // Ignore si l'outil n'est pas le pinceau
+    startDraw(e);
+});
+
 canvas.addEventListener("touchstart", (e) => {
+    if (selectedTool !== 'brush') return; // Ignore si l'outil n'est pas le pinceau
     e.preventDefault();
     startDraw(e);
-    console.log("Dessin commencé (tactile).");
 });
 
 // Dessin lorsque la souris ou un toucher se déplace
