@@ -20,54 +20,68 @@ const setCanvasBackground = () => {
     ctx.fillStyle = "#fff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = selectedColor; // Remet la couleur à la couleur sélectionnée pour les outils de dessin
-}
+};
+
+// Fonction pour obtenir la position du curseur ou du toucher
+const getPointerPosition = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    return {
+        x: (e.touches ? e.touches[0].clientX : e.clientX) - rect.left,
+        y: (e.touches ? e.touches[0].clientY : e.clientY) - rect.top
+    };
+};
 
 // Fonction pour dessiner un rectangle
 const drawRect = (e) => {
+    const { x, y } = getPointerPosition(e);
     if (!fillColor.checked) {
-        return ctx.strokeRect(e.offsetX, e.offsetY, prevMouseX - e.offsetX, prevMouseY - e.offsetY);
+        return ctx.strokeRect(x, y, prevMouseX - x, prevMouseY - y);
     }
-    ctx.fillRect(e.offsetX, e.offsetY, prevMouseX - e.offsetX, prevMouseY - e.offsetY);
-}
+    ctx.fillRect(x, y, prevMouseX - x, prevMouseY - y);
+};
 
 // Fonction pour dessiner un cercle
 const drawCircle = (e) => {
+    const { x, y } = getPointerPosition(e);
     ctx.beginPath();
-    let radius = Math.sqrt(Math.pow((prevMouseX - e.offsetX), 2) + Math.pow((prevMouseY - e.offsetY), 2));
+    let radius = Math.sqrt(Math.pow((prevMouseX - x), 2) + Math.pow((prevMouseY - y), 2));
     ctx.arc(prevMouseX, prevMouseY, radius, 0, 2 * Math.PI);
     fillColor.checked ? ctx.fill() : ctx.stroke();
-}
+};
 
 // Fonction pour dessiner un triangle
 const drawTriangle = (e) => {
+    const { x, y } = getPointerPosition(e);
     ctx.beginPath();
     ctx.moveTo(prevMouseX, prevMouseY);
-    ctx.lineTo(e.offsetX, e.offsetY);
-    ctx.lineTo(prevMouseX * 2 - e.offsetX, e.offsetY);
+    ctx.lineTo(x, y);
+    ctx.lineTo(prevMouseX * 2 - x, y);
     ctx.closePath();
     fillColor.checked ? ctx.fill() : ctx.stroke();
-}
+};
 
 // Fonction pour démarrer le dessin
 const startDraw = (e) => {
     isDrawing = true;
-    prevMouseX = e.offsetX;
-    prevMouseY = e.offsetY;
+    const { x, y } = getPointerPosition(e);
+    prevMouseX = x;
+    prevMouseY = y;
     ctx.beginPath();
     ctx.lineWidth = brushWidth;
     ctx.strokeStyle = selectedColor;
     ctx.fillStyle = selectedColor;
     snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
-}
+};
 
 // Fonction pour continuer le dessin en fonction de l'outil sélectionné
 const drawing = (e) => {
     if (!isDrawing) return;
+    const { x, y } = getPointerPosition(e);
     ctx.putImageData(snapshot, 0, 0);
 
     if (selectedTool === "brush" || selectedTool === "eraser") {
         ctx.strokeStyle = selectedTool === "eraser" ? "#fff" : selectedColor;
-        ctx.lineTo(e.offsetX, e.offsetY);
+        ctx.lineTo(x, y);
         ctx.stroke();
     } else if (selectedTool === "rectangle") {
         drawRect(e);
@@ -76,7 +90,7 @@ const drawing = (e) => {
     } else if (selectedTool === "triangle") {
         drawTriangle(e);
     }
-}
+};
 
 // Gestion des événements pour sélectionner un outil
 toolBtns.forEach(btn => {
@@ -119,14 +133,23 @@ saveImg.addEventListener("click", () => {
     link.click();
 });
 
-// Début du dessin lors du clic de la souris
+// Début du dessin lors du clic de la souris ou d'un toucher
 canvas.addEventListener("mousedown", startDraw);
+canvas.addEventListener("touchstart", (e) => {
+    e.preventDefault(); // Empêche le défilement par défaut lors du toucher
+    startDraw(e);
+});
 
-// Dessin lorsque la souris est déplacée
+// Dessin lorsque la souris est déplacée ou un toucher se déplace
 canvas.addEventListener("mousemove", drawing);
+canvas.addEventListener("touchmove", (e) => {
+    e.preventDefault(); // Empêche le défilement par défaut lors du toucher
+    drawing(e);
+});
 
-// Fin du dessin lorsque la souris est relâchée
+// Fin du dessin lorsque la souris ou le toucher est relâché
 canvas.addEventListener("mouseup", () => isDrawing = false);
+canvas.addEventListener("touchend", () => isDrawing = false);
 
 // Initialisation de l'arrière-plan du canevas lors du chargement de la page
 window.addEventListener("load", () => {
