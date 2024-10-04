@@ -14,8 +14,8 @@ const canvas = document.querySelector("canvas"),
       textColorInput = document.querySelector("#text-color"),
       underlineCheckbox = document.querySelector("#underline"),
       borderCheckbox = document.querySelector("#border"),
+      textProperties = document.querySelector(".text-properties"),
       ctx = canvas.getContext("2d", { willReadFrequently: true });
-
 
 // Variables globales avec valeurs par défaut
 let prevMouseX, prevMouseY, snapshot,
@@ -145,6 +145,16 @@ const addTextToCanvas = (e) => {
     }
 }
 
+// Fonction pour afficher/cacher les propriétés de texte
+const toggleTextProperties = () => {
+    if (textProperties.style.display === "none" || !textProperties.style.display) {
+        textProperties.style.display = "block";  // Afficher les propriétés de texte
+    } else {
+        textProperties.style.display = "none";  // Cacher les propriétés de texte
+        canvas.addEventListener("mousedown", addTextToCanvas, { once: true });  // Ajouter le texte sur le canevas
+    }
+}
+
 // Gestion des événements pour sélectionner un outil
 toolBtns.forEach(btn => {
     btn.addEventListener("click", () => {
@@ -186,10 +196,8 @@ saveImg.addEventListener("click", () => {
     link.click();
 });
 
-// Gérer l'ajout de texte via le bouton
-addTextBtn.addEventListener("click", (e) => {
-    canvas.addEventListener("mousedown", addTextToCanvas, { once: true });
-});
+// Gestion du bouton Add Text
+addTextBtn.addEventListener("click", toggleTextProperties);
 
 // Début du dessin lors du clic de la souris ou d'un toucher
 canvas.addEventListener("mousedown", startDraw);
@@ -214,4 +222,7 @@ window.addEventListener("load", () => {
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
     setCanvasBackground();
+
+    // Masquer les propriétés de texte au départ
+    textProperties.style.display = "none";
 });

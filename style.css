@@ -154,7 +154,7 @@ section {
   transition: all 0.3s ease;
 }
 
-.clear-canvas:hover {
+.clear-canvas:hover{
   color: #fff;
   background: #6C757D;
 }
@@ -188,3 +188,19 @@ section {
   margin-top: 10px;
   width: 100%;
 }
+#add-text{
+
+padding: 10px; ;
+margin-bottom: 10px ;
+border-radius: 5px;
+
+}
+ #add-text:hover {
+
+  color: #fff;
+  background: #6C757D;
+
+
+
+
+ } 
