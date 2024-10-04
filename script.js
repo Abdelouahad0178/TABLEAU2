@@ -157,15 +157,23 @@ const addTextToCanvas = (e) => {
 const toggleTextProperties = () => {
     if (textProperties.style.display === "none" || !textProperties.style.display) {
         textProperties.style.display = "block";  // Afficher les propriétés de texte
-        // Ajouter l'événement mousedown et touchstart après avoir cliqué sur le bouton
-        canvas.addEventListener("mousedown", addTextToCanvas, { once: true });
-        canvas.addEventListener("touchstart", (e) => {
-            e.preventDefault(); // Prévenir le comportement par défaut
-            addTextToCanvas(e);
-        }, { once: true });
     } else {
         textProperties.style.display = "none";  // Cacher les propriétés de texte
     }
+
+    // Suppression des écouteurs précédents pour éviter la répétition
+    canvas.removeEventListener("mousedown", addTextToCanvas);
+    canvas.removeEventListener("touchstart", handleTouchText);
+
+    // Ajout de nouveaux écouteurs pour mousedown et touchstart
+    canvas.addEventListener("mousedown", addTextToCanvas, { once: true });
+    canvas.addEventListener("touchstart", handleTouchText, { once: true });
+}
+
+// Fonction spéciale pour gérer l'ajout de texte en mode tactile
+const handleTouchText = (e) => {
+    e.preventDefault(); // Prévenir le comportement par défaut du navigateur sur les touches
+    addTextToCanvas(e);  // Utiliser la même logique d'ajout de texte
 }
 
 // Gestion des événements pour sélectionner un outil
