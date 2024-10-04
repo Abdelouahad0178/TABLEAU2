@@ -6,9 +6,18 @@ const canvas = document.querySelector("canvas"),
       colorPicker = document.querySelector("#color-picker"),
       clearCanvas = document.querySelector(".clear-canvas"),
       saveImg = document.querySelector(".save-img"),
-      ctx = canvas.getContext("2d");
+      addTextBtn = document.querySelector("#add-text"),
+      textInput = document.querySelector("#text-input"),
+      fontSizeInput = document.querySelector("#font-size"),
+      fontFamilySelect = document.querySelector("#font-family"),
+      fontWeightSelect = document.querySelector("#font-weight"),
+      textColorInput = document.querySelector("#text-color"),
+      underlineCheckbox = document.querySelector("#underline"),
+      borderCheckbox = document.querySelector("#border"),
+      ctx = canvas.getContext("2d", { willReadFrequently: true });
 
-// Variables globales avec valeur par défaut
+
+// Variables globales avec valeurs par défaut
 let prevMouseX, prevMouseY, snapshot,
     isDrawing = false,
     selectedTool = "brush",
@@ -19,8 +28,8 @@ let prevMouseX, prevMouseY, snapshot,
 const setCanvasBackground = () => {
     ctx.fillStyle = "#fff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = selectedColor; // Remet la couleur à la couleur sélectionnée pour les outils de dessin
-};
+    ctx.fillStyle = selectedColor; // Réinitialise la couleur sélectionnée
+}
 
 // Fonction pour obtenir la position du curseur ou du toucher
 const getPointerPosition = (e) => {
@@ -29,16 +38,17 @@ const getPointerPosition = (e) => {
         x: (e.touches ? e.touches[0].clientX : e.clientX) - rect.left,
         y: (e.touches ? e.touches[0].clientY : e.clientY) - rect.top
     };
-};
+}
 
 // Fonction pour dessiner un rectangle
 const drawRect = (e) => {
     const { x, y } = getPointerPosition(e);
+    ctx.beginPath();
     if (!fillColor.checked) {
-        return ctx.strokeRect(x, y, prevMouseX - x, prevMouseY - y);
+        return ctx.strokeRect(prevMouseX, prevMouseY, x - prevMouseX, y - prevMouseY);
     }
-    ctx.fillRect(x, y, prevMouseX - x, prevMouseY - y);
-};
+    ctx.fillRect(prevMouseX, prevMouseY, x - prevMouseX, y - prevMouseY);
+}
 
 // Fonction pour dessiner un cercle
 const drawCircle = (e) => {
@@ -47,7 +57,7 @@ const drawCircle = (e) => {
     let radius = Math.sqrt(Math.pow((prevMouseX - x), 2) + Math.pow((prevMouseY - y), 2));
     ctx.arc(prevMouseX, prevMouseY, radius, 0, 2 * Math.PI);
     fillColor.checked ? ctx.fill() : ctx.stroke();
-};
+}
 
 // Fonction pour dessiner un triangle
 const drawTriangle = (e) => {
@@ -58,7 +68,7 @@ const drawTriangle = (e) => {
     ctx.lineTo(prevMouseX * 2 - x, y);
     ctx.closePath();
     fillColor.checked ? ctx.fill() : ctx.stroke();
-};
+}
 
 // Fonction pour démarrer le dessin
 const startDraw = (e) => {
@@ -70,8 +80,8 @@ const startDraw = (e) => {
     ctx.lineWidth = brushWidth;
     ctx.strokeStyle = selectedColor;
     ctx.fillStyle = selectedColor;
-    snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
-};
+    snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height); // Prendre une capture de l'état actuel
+}
 
 // Fonction pour continuer le dessin en fonction de l'outil sélectionné
 const drawing = (e) => {
@@ -90,7 +100,50 @@ const drawing = (e) => {
     } else if (selectedTool === "triangle") {
         drawTriangle(e);
     }
-};
+}
+
+// Fonction pour ajouter du texte sur le canevas
+const addTextToCanvas = (e) => {
+    const text = textInput.value;
+    if (!text) return; // Ne pas ajouter de texte si le champ est vide
+
+    const fontSize = fontSizeInput.value;
+    const fontFamily = fontFamilySelect.value;
+    const fontWeight = fontWeightSelect.value;
+    const textColor = textColorInput.value;
+    const underline = underlineCheckbox.checked;
+    const border = borderCheckbox.checked;
+
+    // Position du texte
+    const { x, y } = getPointerPosition(e);
+
+    // Appliquer les propriétés du texte
+    ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+    ctx.fillStyle = textColor;
+    ctx.textBaseline = "top";
+
+    // Dessiner le texte
+    ctx.fillText(text, x, y);
+
+    // Ajouter un encadré autour du texte si nécessaire
+    if (border) {
+        const textWidth = ctx.measureText(text).width;
+        const textHeight = fontSize; // Estimation de la hauteur de texte
+        ctx.strokeStyle = textColor;
+        ctx.strokeRect(x, y, textWidth, textHeight);
+    }
+
+    // Ajouter un soulignement si nécessaire
+    if (underline) {
+        const textWidth = ctx.measureText(text).width;
+        ctx.beginPath();
+        ctx.moveTo(x, y + parseInt(fontSize));
+        ctx.lineTo(x + textWidth, y + parseInt(fontSize));
+        ctx.strokeStyle = textColor;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+}
 
 // Gestion des événements pour sélectionner un outil
 toolBtns.forEach(btn => {
@@ -133,17 +186,22 @@ saveImg.addEventListener("click", () => {
     link.click();
 });
 
+// Gérer l'ajout de texte via le bouton
+addTextBtn.addEventListener("click", (e) => {
+    canvas.addEventListener("mousedown", addTextToCanvas, { once: true });
+});
+
 // Début du dessin lors du clic de la souris ou d'un toucher
 canvas.addEventListener("mousedown", startDraw);
 canvas.addEventListener("touchstart", (e) => {
-    e.preventDefault(); // Empêche le défilement par défaut lors du toucher
+    e.preventDefault();
     startDraw(e);
 });
 
-// Dessin lorsque la souris est déplacée ou un toucher se déplace
+// Dessin lorsque la souris ou un toucher se déplace
 canvas.addEventListener("mousemove", drawing);
 canvas.addEventListener("touchmove", (e) => {
-    e.preventDefault(); // Empêche le défilement par défaut lors du toucher
+    e.preventDefault();
     drawing(e);
 });
 
