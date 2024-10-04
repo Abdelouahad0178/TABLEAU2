@@ -1,21 +1,21 @@
 const canvas = document.querySelector("canvas"),
-      toolBtns = document.querySelectorAll(".tool"),
-      fillColor = document.querySelector("#fill-color"),
-      sizeSlider = document.querySelector("#size-slider"),
-      colorBtns = document.querySelectorAll(".colors .option"),
-      colorPicker = document.querySelector("#color-picker"),
-      clearCanvas = document.querySelector(".clear-canvas"),
-      saveImg = document.querySelector(".save-img"),
-      addTextBtn = document.querySelector("#add-text"),
-      textInput = document.querySelector("#text-input"),
-      fontSizeInput = document.querySelector("#font-size"),
-      fontFamilySelect = document.querySelector("#font-family"),
-      fontWeightSelect = document.querySelector("#font-weight"),
-      textColorInput = document.querySelector("#text-color"),
-      underlineCheckbox = document.querySelector("#underline"),
-      borderCheckbox = document.querySelector("#border"),
-      textProperties = document.querySelector(".text-properties"),
-      ctx = canvas.getContext("2d", { willReadFrequently: true });
+    toolBtns = document.querySelectorAll(".tool"),
+    fillColor = document.querySelector("#fill-color"),
+    sizeSlider = document.querySelector("#size-slider"),
+    colorBtns = document.querySelectorAll(".colors .option"),
+    colorPicker = document.querySelector("#color-picker"),
+    clearCanvas = document.querySelector(".clear-canvas"),
+    saveImg = document.querySelector(".save-img"),
+    addTextBtn = document.querySelector("#add-text"),
+    textInput = document.querySelector("#text-input"),
+    fontSizeInput = document.querySelector("#font-size"),
+    fontFamilySelect = document.querySelector("#font-family"),
+    fontWeightSelect = document.querySelector("#font-weight"),
+    textColorInput = document.querySelector("#text-color"),
+    underlineCheckbox = document.querySelector("#underline"),
+    borderCheckbox = document.querySelector("#border"),
+    textProperties = document.querySelector(".text-properties"),
+    ctx = canvas.getContext("2d", { willReadFrequently: true });
 
 // Variables globales avec valeurs par défaut
 let prevMouseX, prevMouseY, snapshot,
@@ -29,7 +29,7 @@ const setCanvasBackground = () => {
     ctx.fillStyle = "#fff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = selectedColor; // Réinitialise la couleur sélectionnée
-}
+};
 
 // Fonction pour obtenir la position du curseur ou du toucher
 const getPointerPosition = (e) => {
@@ -38,7 +38,7 @@ const getPointerPosition = (e) => {
         x: (e.touches ? e.touches[0].clientX : e.clientX) - rect.left,
         y: (e.touches ? e.touches[0].clientY : e.clientY) - rect.top
     };
-}
+};
 
 // Fonction pour dessiner un rectangle
 const drawRect = (e) => {
@@ -48,7 +48,7 @@ const drawRect = (e) => {
         return ctx.strokeRect(prevMouseX, prevMouseY, x - prevMouseX, y - prevMouseY);
     }
     ctx.fillRect(prevMouseX, prevMouseY, x - prevMouseX, y - prevMouseY);
-}
+};
 
 // Fonction pour dessiner un cercle
 const drawCircle = (e) => {
@@ -57,7 +57,7 @@ const drawCircle = (e) => {
     let radius = Math.sqrt(Math.pow((prevMouseX - x), 2) + Math.pow((prevMouseY - y), 2));
     ctx.arc(prevMouseX, prevMouseY, radius, 0, 2 * Math.PI);
     fillColor.checked ? ctx.fill() : ctx.stroke();
-}
+};
 
 // Fonction pour dessiner un triangle
 const drawTriangle = (e) => {
@@ -68,7 +68,7 @@ const drawTriangle = (e) => {
     ctx.lineTo(prevMouseX * 2 - x, y);
     ctx.closePath();
     fillColor.checked ? ctx.fill() : ctx.stroke();
-}
+};
 
 // Fonction pour démarrer le dessin
 const startDraw = (e) => {
@@ -81,7 +81,7 @@ const startDraw = (e) => {
     ctx.strokeStyle = selectedColor;
     ctx.fillStyle = selectedColor;
     snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height); // Prendre une capture de l'état actuel
-}
+};
 
 // Fonction pour continuer le dessin en fonction de l'outil sélectionné
 const drawing = (e) => {
@@ -100,7 +100,7 @@ const drawing = (e) => {
     } else if (selectedTool === "triangle") {
         drawTriangle(e);
     }
-}
+};
 
 // Fonction pour ajouter du texte sur le canevas
 const addTextToCanvas = (e) => {
@@ -143,7 +143,7 @@ const addTextToCanvas = (e) => {
         ctx.lineWidth = 2;
         ctx.stroke();
     }
-}
+};
 
 // Fonction pour afficher/cacher les propriétés de texte
 const toggleTextProperties = () => {
@@ -153,7 +153,7 @@ const toggleTextProperties = () => {
         textProperties.style.display = "none";  // Cacher les propriétés de texte
         canvas.addEventListener("mousedown", addTextToCanvas, { once: true });  // Ajouter le texte sur le canevas
     }
-}
+};
 
 // Gestion des événements pour sélectionner un outil
 toolBtns.forEach(btn => {

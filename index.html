@@ -1,107 +1,106 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
-  <head>
+<html lang="fr" dir="ltr">
+<head>
     <meta charset="utf-8">
-    <title>Drawing App with Text and Table | CodingNepal</title>
-    <link rel="stylesheet" href="style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="script.js" defer></script>
-  </head>
-  <body>
+    <title>Application de Dessin</title>
+    <link rel="stylesheet" href="style.css">
+    <script defer src="script.js"></script>
+</head>
+<body>
     <div class="container">
-      <section class="tools-board">
-        <!-- Outils de dessin -->
-        <div class="row">
-          <label class="title">Shapes</label>
-          <ul class="options">
-            <li class="option tool" id="rectangle">
-              <img src="https://maria1.netlify.app/icons/rectangle.svg" alt="" style="width: 20px;">
-              <span>Rectangle</span>
-            </li>
-            <li class="option tool" id="circle">
-              <img src="https://maria1.netlify.app/icons/circle.svg"  style="width: 20px;" alt="">
-              <span>Circle</span>
-            </li>
-            <li class="option tool" id="triangle">
-              <img src="https://maria1.netlify.app/icons/triangle.svg" alt="" style="width: 20px;">
-              <span>Triangle</span>
-            </li>
-            <li class="option">
-              <input type="checkbox" id="fill-color">
-              <label for="fill-color">Fill color</label>
-            </li>
-          </ul>
-        </div>
+        <section class="tools-board">
+            <!-- Outils de dessin -->
+            <div class="row">
+                <label class="title">Formes</label>
+                <ul class="options">
+                    <li class="option tool" id="rectangle">
+                        <img src="https://maria1.netlify.app/icons/rectangle.svg" alt="Rectangle" style="width: 20px;">
+                        <span>Rectangle</span>
+                    </li>
+                    <li class="option tool" id="circle">
+                        <img src="https://maria1.netlify.app/icons/circle.svg" alt="Cercle" style="width: 20px;">
+                        <span>Cercle</span>
+                    </li>
+                    <li class="option tool" id="triangle">
+                        <img src="https://maria1.netlify.app/icons/triangle.svg" alt="Triangle" style="width: 20px;">
+                        <span>Triangle</span>
+                    </li>
+                    <li class="option">
+                        <input type="checkbox" id="fill-color">
+                        <label for="fill-color">Remplir la couleur</label>
+                    </li>
+                </ul>
+            </div>
 
-        <!-- Outils de dessin supplémentaires -->
-        <div class="row">
-          <label class="title">Options</label>
-          <ul class="options">
-            <li class="option active tool" id="brush">
-              <img src="https://maria1.netlify.app/icons/brush.svg" alt="">
-              <span>Brush</span>
-            </li>
-            <li class="option tool" id="eraser">
-              <img src="https://maria1.netlify.app/icons/eraser.svg" alt="">
-              <span>Eraser</span>
-            </li>
-            <li class="option">
-              <input type="range" id="size-slider" min="1" max="30" value="5">
-            </li>
-          </ul>
-        </div>
+            <!-- Outils supplémentaires -->
+            <div class="row">
+                <label class="title">Options</label>
+                <ul class="options">
+                    <li class="option active tool" id="brush">
+                        <img src="https://maria1.netlify.app/icons/brush.svg" alt="Pinceau">
+                        <span>Pinceau</span>
+                    </li>
+                    <li class="option tool" id="eraser">
+                        <img src="https://maria1.netlify.app/icons/eraser.svg" alt="Gomme">
+                        <span>Gomme</span>
+                    </li>
+                    <li class="option">
+                        <input type="range" id="size-slider" min="1" max="30" value="5">
+                    </li>
+                </ul>
+            </div>
 
-        <!-- Choix des couleurs -->
-        <div class="row colors">
-          <label class="title">Colors</label>
-          <ul class="options">
-            <li class="option" style="background-color: #ffffff;"></li>
-            <li class="option selected" style="background-color: #000000;"></li>
-            <li class="option" style="background-color: #E02020;"></li>
-            <li class="option" style="background-color: #6DD400;"></li>
-            <li class="option">
-              <input type="color" id="color-picker" value="#4A98F7">
-            </li>
-          </ul>
-        </div>
+            <!-- Choix des couleurs -->
+            <div class="row colors">
+                <label class="title">Couleurs</label>
+                <ul class="options">
+                    <li class="option" style="background-color: #ffffff;"></li>
+                    <li class="option selected" style="background-color: #000000;"></li>
+                    <li class="option" style="background-color: #E02020;"></li>
+                    <li class="option" style="background-color: #6DD400;"></li>
+                    <li class="option">
+                        <input type="color" id="color-picker" value="#4A98F7">
+                    </li>
+                </ul>
+            </div>
 
-        <!-- Formulaire pour ajouter du texte -->
-        <div class="row text-properties">
-          <label class="title">Text Properties</label>
-          <input type="text" id="text-input" placeholder="Enter your text">
-          <label for="font-size">Font Size:</label>
-          <input type="number" id="font-size" value="20" min="10" max="100">
-          <label for="font-family">Font Family:</label>
-          <select id="font-family">
-            <option value="Arial">Arial</option>
-            <option value="Verdana">Verdana</option>
-            <option value="Times New Roman">Times New Roman</option>
-          </select>
-          <label for="font-weight">Font Weight:</label>
-          <select id="font-weight">
-            <option value="normal">Normal</option>
-            <option value="bold">Bold</option>
-            <option value="bolder">Bolder</option>
-          </select>
-          <label for="text-color">Text Color:</label>
-          <input type="color" id="text-color" value="#000000">
-          <label for="underline">Underline:</label>
-          <input type="checkbox" id="underline">
-          <label for="border">Text Border:</label>
-          <input type="checkbox" id="border">
-          
-        </div>
-        <button id="add-text">Add Text</button>
-        <!-- Boutons de contrôle -->
-        <div class="row buttons">
-          <button class="clear-canvas">Clear Canvas</button>
-          <button class="save-img">Save As Image</button>
-        </div>
-      </section>
+            <!-- Formulaire pour ajouter du texte -->
+            <div class="row text-properties">
+                <label class="title">Propriétés du texte</label>
+                <input type="text" id="text-input" placeholder="Entrez votre texte">
+                <label for="font-size">Taille de la police :</label>
+                <input type="number" id="font-size" value="20" min="10" max="100">
+                <label for="font-family">Police :</label>
+                <select id="font-family">
+                    <option value="Arial">Arial</option>
+                    <option value="Verdana">Verdana</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                </select>
+                <label for="font-weight">Épaisseur :</label>
+                <select id="font-weight">
+                    <option value="normal">Normal</option>
+                    <option value="bold">Gras</option>
+                </select>
+                <label for="text-color">Couleur du texte :</label>
+                <input type="color" id="text-color" value="#000000">
+                <label for="underline">Soulignement :</label>
+                <input type="checkbox" id="underline">
+                <label for="border">Bordure du texte :</label>
+                <input type="checkbox" id="border">
+            </div>
+            <button id="add-text">Ajouter du texte</button>
 
-      <section class="drawing-board">
-        <canvas></canvas>
-      </section>
+            <!-- Boutons de contrôle -->
+            <div class="row buttons">
+                <button class="clear-canvas">Effacer le Canevas</button>
+                <button class="save-img">Enregistrer sous forme d'image</button>
+            </div>
+        </section>
+
+        <section class="drawing-board">
+            <canvas></canvas>
+        </section>
     </div>
-  </body>
+</body>
 </html>
