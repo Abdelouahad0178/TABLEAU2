@@ -34,14 +34,8 @@ const setCanvasBackground = () => {
 // Fonction pour obtenir la position du curseur ou du toucher
 const getPointerPosition = (e) => {
     const rect = canvas.getBoundingClientRect();
-    let clientX, clientY;
-    if (e.touches) { // Si événement tactile
-        clientX = e.touches[0].clientX;
-        clientY = e.touches[0].clientY;
-    } else { // Si événement souris
-        clientX = e.clientX;
-        clientY = e.clientY;
-    }
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     return {
         x: clientX - rect.left,
         y: clientY - rect.top
@@ -151,23 +145,23 @@ const addTextToCanvas = (e) => {
         ctx.lineWidth = 2;
         ctx.stroke();
     }
+
+    // Suppression de l'écouteur après ajout du texte
+    canvas.removeEventListener("mousedown", addTextToCanvas);
+    canvas.removeEventListener("touchstart", handleTouchText);
 }
 
 // Fonction pour afficher/cacher les propriétés de texte
 const toggleTextProperties = () => {
     if (textProperties.style.display === "none" || !textProperties.style.display) {
         textProperties.style.display = "block";  // Afficher les propriétés de texte
+
+        // Ajout des événements après avoir activé le bouton Add Text
+        canvas.addEventListener("mousedown", addTextToCanvas, { once: true });
+        canvas.addEventListener("touchstart", handleTouchText, { once: true });
     } else {
         textProperties.style.display = "none";  // Cacher les propriétés de texte
     }
-
-    // Suppression des écouteurs précédents pour éviter la répétition
-    canvas.removeEventListener("mousedown", addTextToCanvas);
-    canvas.removeEventListener("touchstart", handleTouchText);
-
-    // Ajout de nouveaux écouteurs pour mousedown et touchstart
-    canvas.addEventListener("mousedown", addTextToCanvas, { once: true });
-    canvas.addEventListener("touchstart", handleTouchText, { once: true });
 }
 
 // Fonction spéciale pour gérer l'ajout de texte en mode tactile
