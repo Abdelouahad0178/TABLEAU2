@@ -187,20 +187,16 @@ section {
   display: block;
   margin-top: 10px;
   width: 100%;
+}#add-text {
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  background-color: #4A98F7;
+  color: white;
 }
-#add-text{
 
-padding: 10px; ;
-margin-bottom: 10px ;
-border-radius: 5px;
-
-}
- #add-text:hover {
-
+#add-text:hover {
+  background-color: #6C757D;
   color: #fff;
-  background: #6C757D;
-
-
-
-
- } 
+}

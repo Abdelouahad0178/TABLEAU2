@@ -34,9 +34,11 @@ const setCanvasBackground = () => {
 // Fonction pour obtenir la position du curseur ou du toucher
 const getPointerPosition = (e) => {
     const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     return {
-        x: (e.touches ? e.touches[0].clientX : e.clientX) - rect.left,
-        y: (e.touches ? e.touches[0].clientY : e.clientY) - rect.top
+        x: clientX - rect.left,
+        y: clientY - rect.top
     };
 }
 
@@ -151,7 +153,8 @@ const toggleTextProperties = () => {
         textProperties.style.display = "block";  // Afficher les propriétés de texte
     } else {
         textProperties.style.display = "none";  // Cacher les propriétés de texte
-        canvas.addEventListener("mousedown", addTextToCanvas, { once: true });  // Ajouter le texte sur le canevas
+        canvas.addEventListener("mousedown", addTextToCanvas, { once: true });  // Ajouter le texte avec la souris
+        canvas.addEventListener("touchstart", addTextToCanvas, { once: true });  // Ajouter le texte avec le toucher
     }
 }
 
