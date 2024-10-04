@@ -34,8 +34,14 @@ const setCanvasBackground = () => {
 // Fonction pour obtenir la position du curseur ou du toucher
 const getPointerPosition = (e) => {
     const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    let clientX, clientY;
+    if (e.touches) { // Si événement tactile
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+    } else { // Si événement souris
+        clientX = e.clientX;
+        clientY = e.clientY;
+    }
     return {
         x: clientX - rect.left,
         y: clientY - rect.top
@@ -151,10 +157,14 @@ const addTextToCanvas = (e) => {
 const toggleTextProperties = () => {
     if (textProperties.style.display === "none" || !textProperties.style.display) {
         textProperties.style.display = "block";  // Afficher les propriétés de texte
+        // Ajouter l'événement mousedown et touchstart après avoir cliqué sur le bouton
+        canvas.addEventListener("mousedown", addTextToCanvas, { once: true });
+        canvas.addEventListener("touchstart", (e) => {
+            e.preventDefault(); // Prévenir le comportement par défaut
+            addTextToCanvas(e);
+        }, { once: true });
     } else {
         textProperties.style.display = "none";  // Cacher les propriétés de texte
-        canvas.addEventListener("mousedown", addTextToCanvas, { once: true });  // Ajouter le texte avec la souris
-        canvas.addEventListener("touchstart", addTextToCanvas, { once: true });  // Ajouter le texte avec le toucher
     }
 }
 
