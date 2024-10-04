@@ -151,7 +151,13 @@ const toggleTextProperties = () => {
         textProperties.style.display = "block";  // Afficher les propriétés de texte
     } else {
         textProperties.style.display = "none";  // Cacher les propriétés de texte
-        canvas.addEventListener("mousedown", addTextToCanvas, { once: true });  // Ajouter le texte sur le canevas
+
+        // Gestion des événements de la souris et des écrans tactiles
+        canvas.addEventListener("mousedown", addTextToCanvas, { once: true });
+        canvas.addEventListener("touchstart", (e) => {
+            e.preventDefault();
+            addTextToCanvas(e);
+        }, { once: true });
     }
 };
 
