@@ -34,17 +34,9 @@ const setCanvasBackground = () => {
 // Fonction pour obtenir la position du curseur ou du toucher
 const getPointerPosition = (e) => {
     const rect = canvas.getBoundingClientRect();
-    let clientX, clientY;
-    if (e.touches) { // Si événement tactile
-        clientX = e.touches[0].clientX;
-        clientY = e.touches[0].clientY;
-    } else { // Si événement souris
-        clientX = e.clientX;
-        clientY = e.clientY;
-    }
     return {
-        x: clientX - rect.left,
-        y: clientY - rect.top
+        x: (e.touches ? e.touches[0].clientX : e.clientX) - rect.left,
+        y: (e.touches ? e.touches[0].clientY : e.clientY) - rect.top
     };
 }
 
@@ -159,21 +151,8 @@ const toggleTextProperties = () => {
         textProperties.style.display = "block";  // Afficher les propriétés de texte
     } else {
         textProperties.style.display = "none";  // Cacher les propriétés de texte
+        canvas.addEventListener("mousedown", addTextToCanvas, { once: true });  // Ajouter le texte sur le canevas
     }
-
-    // Suppression des écouteurs précédents pour éviter la répétition
-    canvas.removeEventListener("mousedown", addTextToCanvas);
-    canvas.removeEventListener("touchstart", handleTouchText);
-
-    // Ajout de nouveaux écouteurs pour mousedown et touchstart
-    canvas.addEventListener("mousedown", addTextToCanvas, { once: true });
-    canvas.addEventListener("touchstart", handleTouchText, { once: true });
-}
-
-// Fonction spéciale pour gérer l'ajout de texte en mode tactile
-const handleTouchText = (e) => {
-    e.preventDefault(); // Prévenir le comportement par défaut du navigateur sur les touches
-    addTextToCanvas(e);  // Utiliser la même logique d'ajout de texte
 }
 
 // Gestion des événements pour sélectionner un outil
