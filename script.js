@@ -14,6 +14,7 @@ const canvas = document.querySelector("canvas"),
     textColorInput = document.querySelector("#text-color"),
     underlineCheckbox = document.querySelector("#underline"),
     borderCheckbox = document.querySelector("#border"),
+    uploadImageInput = document.querySelector("#upload-image"),
     textProperties = document.querySelector(".text-properties"),
     ctx = canvas.getContext("2d", { willReadFrequently: true });
 
@@ -22,7 +23,11 @@ let prevMouseX, prevMouseY, snapshot,
     isDrawing = false,
     selectedTool = "brush",
     brushWidth = 5,
-    selectedColor = "#000";
+    selectedColor = "#000",
+    uploadedImage = null,
+    imageX = 50, imageY = 50, imageWidth = 200, imageHeight = 150,
+    isResizingImage = false, isMovingImage = false,
+    isMovingText = false, selectedTextX, selectedTextY;
 
 // Fonction pour définir l'arrière-plan du canevas en blanc
 const setCanvasBackground = () => {
@@ -102,10 +107,18 @@ const drawing = (e) => {
     }
 };
 
+// Fonction pour arrêter le dessin
+const stopDraw = () => {
+    isDrawing = false;
+};
+
 // Fonction pour ajouter du texte sur le canevas
 const addTextToCanvas = (e) => {
     const text = textInput.value;
     if (!text) return; // Ne pas ajouter de texte si le champ est vide
+
+    selectedTextX = getPointerPosition(e).x;
+    selectedTextY = getPointerPosition(e).y;
 
     const fontSize = fontSizeInput.value;
     const fontFamily = fontFamilySelect.value;
@@ -114,46 +127,134 @@ const addTextToCanvas = (e) => {
     const underline = underlineCheckbox.checked;
     const border = borderCheckbox.checked;
 
-    // Position du texte
-    const { x, y } = getPointerPosition(e);
-
-    // Appliquer les propriétés du texte
     ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
     ctx.fillStyle = textColor;
     ctx.textBaseline = "top";
-
-    // Dessiner le texte
-    ctx.fillText(text, x, y);
+    ctx.fillText(text, selectedTextX, selectedTextY);
 
     // Ajouter un encadré autour du texte si nécessaire
     if (border) {
         const textWidth = ctx.measureText(text).width;
         const textHeight = fontSize; // Estimation de la hauteur de texte
         ctx.strokeStyle = textColor;
-        ctx.strokeRect(x, y, textWidth, textHeight);
+        ctx.strokeRect(selectedTextX, selectedTextY, textWidth, textHeight);
     }
 
     // Ajouter un soulignement si nécessaire
     if (underline) {
         const textWidth = ctx.measureText(text).width;
         ctx.beginPath();
-        ctx.moveTo(x, y + parseInt(fontSize));
-        ctx.lineTo(x + textWidth, y + parseInt(fontSize));
+        ctx.moveTo(selectedTextX, selectedTextY + parseInt(fontSize));
+        ctx.lineTo(selectedTextX + textWidth, selectedTextY + parseInt(fontSize));
         ctx.strokeStyle = textColor;
         ctx.lineWidth = 2;
         ctx.stroke();
     }
 };
 
-// Fonction pour afficher/cacher les propriétés de texte
-const toggleTextProperties = () => {
-    if (textProperties.style.display === "none" || !textProperties.style.display) {
-        textProperties.style.display = "block";  // Afficher les propriétés de texte
-    } else {
-        textProperties.style.display = "none";  // Cacher les propriétés de texte
-        canvas.addEventListener("mousedown", addTextToCanvas, { once: true });  // Ajouter le texte sur le canevas
-    }
+// Fonction pour gérer l'importation d'une image
+uploadImageInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        const img = new Image();
+        img.src = reader.result;
+        img.onload = () => {
+            uploadedImage = img;
+            drawImage();
+        };
+    };
+    reader.readAsDataURL(file);
+});
+
+const drawImage = () => {
+    if (!uploadedImage) return;
+    ctx.drawImage(uploadedImage, imageX, imageY, imageWidth, imageHeight);
 };
+
+// Gestion du déplacement et redimensionnement de l'image
+canvas.addEventListener("mousedown", (e) => {
+    const { x, y } = getPointerPosition(e);
+    
+    // Vérifier si l'utilisateur clique sur l'image pour la déplacer
+    if (x > imageX && x < imageX + imageWidth && y > imageY && y < imageY + imageHeight) {
+        isMovingImage = true;
+        prevMouseX = x;
+        prevMouseY = y;
+        snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    }
+
+    // Vérifier si l'utilisateur clique sur le texte pour le déplacer
+    if (x > selectedTextX && x < selectedTextX + ctx.measureText(textInput.value).width && y > selectedTextY && y < selectedTextY + fontSizeInput.value) {
+        isMovingText = true;
+        prevMouseX = x;
+        prevMouseY = y;
+        snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    }
+});
+
+canvas.addEventListener("mousemove", (e) => {
+    if (!isMovingImage && !isMovingText) return;
+
+    const { x, y } = getPointerPosition(e);
+    ctx.putImageData(snapshot, 0, 0);
+
+    // Déplacer l'image
+    if (isMovingImage) {
+        imageX += x - prevMouseX;
+        imageY += y - prevMouseY;
+        prevMouseX = x;
+        prevMouseY = y;
+        drawImage();
+    }
+
+    // Déplacer le texte
+    if (isMovingText) {
+        selectedTextX += x - prevMouseX;
+        selectedTextY += y - prevMouseY;
+        prevMouseX = x;
+        prevMouseY = y;
+        ctx.fillText(textInput.value, selectedTextX, selectedTextY);
+    }
+});
+
+canvas.addEventListener("mouseup", () => {
+    isMovingImage = false;
+    isMovingText = false;
+});
+
+// Gestion du redimensionnement de l'image (avec la touche "Shift")
+canvas.addEventListener("mousedown", (e) => {
+    const { x, y } = getPointerPosition(e);
+
+    // Si l'utilisateur appuie sur Shift + clic sur l'image, commencer à redimensionner
+    if (e.shiftKey && x > imageX && x < imageX + imageWidth && y > imageY && y < imageY + imageHeight) {
+        isResizingImage = true;
+        prevMouseX = x;
+        prevMouseY = y;
+        snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    }
+});
+
+canvas.addEventListener("mousemove", (e) => {
+    if (!isResizingImage) return;
+
+    const { x, y } = getPointerPosition(e);
+    ctx.putImageData(snapshot, 0, 0);
+
+    // Redimensionner l'image
+    imageWidth += x - prevMouseX;
+    imageHeight += y - prevMouseY;
+    prevMouseX = x;
+    prevMouseY = y;
+    drawImage();
+});
+
+canvas.addEventListener("mouseup", () => {
+    isResizingImage = false;
+});
 
 // Gestion des événements pour sélectionner un outil
 toolBtns.forEach(btn => {
@@ -196,33 +297,20 @@ saveImg.addEventListener("click", () => {
     link.click();
 });
 
-// Gestion du bouton Add Text
-addTextBtn.addEventListener("click", toggleTextProperties);
-
-// Début du dessin lors du clic de la souris ou d'un toucher
-canvas.addEventListener("mousedown", startDraw);
-canvas.addEventListener("touchstart", (e) => {
-    e.preventDefault();
-    startDraw(e);
+// Gestion du bouton Ajouter du texte
+addTextBtn.addEventListener("click", () => {
+    canvas.addEventListener("mousedown", addTextToCanvas, { once: true });
 });
-
-// Dessin lorsque la souris ou un toucher se déplace
-canvas.addEventListener("mousemove", drawing);
-canvas.addEventListener("touchmove", (e) => {
-    e.preventDefault();
-    drawing(e);
-});
-
-// Fin du dessin lorsque la souris ou le toucher est relâché
-canvas.addEventListener("mouseup", () => isDrawing = false);
-canvas.addEventListener("touchend", () => isDrawing = false);
 
 // Initialisation de l'arrière-plan du canevas lors du chargement de la page
 window.addEventListener("load", () => {
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
     setCanvasBackground();
-
-    // Masquer les propriétés de texte au départ
-    textProperties.style.display = "none";
 });
+
+// Stop drawing on mouse up or out of canvas
+canvas.addEventListener("mouseup", stopDraw);
+canvas.addEventListener("mouseout", stopDraw);
+canvas.addEventListener("mousedown", startDraw);
+canvas.addEventListener("mousemove", drawing);
