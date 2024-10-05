@@ -25,7 +25,9 @@ let isDrawing = false,
     objects = [], // Liste des objets (images, textes, formes)
     snapshot,
     prevMouseX, prevMouseY,
-    currentShape = null; // Pour stocker temporairement la forme dessinée
+    currentShape = null, // Pour stocker temporairement la forme dessinée
+    isResizingImage = false,
+    resizingCorner = null;
 
 // Fonction pour définir l'arrière-plan du canevas en blanc
 const setCanvasBackground = () => {
@@ -37,10 +39,15 @@ const setCanvasBackground = () => {
 // Fonction pour obtenir la position du curseur ou du toucher
 const getPointerPosition = (e) => {
     const rect = canvas.getBoundingClientRect();
-    return {
-        x: (e.touches ? e.touches[0].clientX : e.clientX) - rect.left,
-        y: (e.touches ? e.touches[0].clientY : e.clientY) - rect.top
-    };
+    let x, y;
+    if (e.touches && e.touches[0]) {
+        x = e.touches[0].clientX - rect.left;
+        y = e.touches[0].clientY - rect.top;
+    } else {
+        x = e.clientX - rect.left;
+        y = e.clientY - rect.top;
+    }
+    return { x, y };
 };
 
 // Fonction pour dessiner un rectangle
@@ -98,7 +105,50 @@ const drawText = (object) => {
 const drawImage = (object) => {
     if (object.image) {
         ctx.drawImage(object.image, object.x, object.y, object.width, object.height);
+        // Dessiner les poignées de redimensionnement
+        if (object === objects[movingElementIndex]) {
+            drawImageHandles(object);
+        }
     }
+};
+
+// Fonction pour dessiner les poignées de redimensionnement sur l'image sélectionnée
+const drawImageHandles = (object) => {
+    const handleSize = 10;
+    const corners = [
+        { x: object.x, y: object.y }, // Haut-gauche
+        { x: object.x + object.width, y: object.y }, // Haut-droit
+        { x: object.x, y: object.y + object.height }, // Bas-gauche
+        { x: object.x + object.width, y: object.y + object.height }, // Bas-droit
+    ];
+
+    ctx.fillStyle = '#000';
+    corners.forEach(corner => {
+        ctx.fillRect(corner.x - handleSize / 2, corner.y - handleSize / 2, handleSize, handleSize);
+    });
+};
+
+// Fonction pour vérifier si le pointeur est sur une poignée de redimensionnement
+const isOnHandle = (x, y, object) => {
+    const handleSize = 10;
+    const corners = [
+        { x: object.x, y: object.y, position: 'top-left' },
+        { x: object.x + object.width, y: object.y, position: 'top-right' },
+        { x: object.x, y: object.y + object.height, position: 'bottom-left' },
+        { x: object.x + object.width, y: object.y + object.height, position: 'bottom-right' },
+    ];
+
+    for (let corner of corners) {
+        if (
+            x >= corner.x - handleSize / 2 &&
+            x <= corner.x + handleSize / 2 &&
+            y >= corner.y - handleSize / 2 &&
+            y <= corner.y + handleSize / 2
+        ) {
+            return corner.position;
+        }
+    }
+    return null;
 };
 
 // Fonction pour redessiner tous les objets sur le canevas
@@ -131,8 +181,24 @@ const redrawCanvas = () => {
 const startDrawOrMove = (e) => {
     const { x, y } = getPointerPosition(e);
 
+    // Vérifier si l'utilisateur clique sur une poignée de redimensionnement
+    for (let i = objects.length - 1; i >= 0; i--) {
+        const obj = objects[i];
+        if (obj.type === 'image') {
+            const handle = isOnHandle(x, y, obj);
+            if (handle) {
+                isResizingImage = true;
+                resizingCorner = handle;
+                movingElementIndex = i;
+                prevMouseX = x;
+                prevMouseY = y;
+                return;
+            }
+        }
+    }
+
     // Vérifier si l'utilisateur clique sur un objet pour le déplacer
-    movingElementIndex = objects.findIndex(obj => {
+    movingElementIndex = objects.findIndex((obj, index) => {
         if (obj.type === 'image') {
             return x > obj.x && x < obj.x + obj.width && y > obj.y && y < obj.y + obj.height;
         } else if (obj.type === 'text') {
@@ -159,6 +225,7 @@ const startDrawOrMove = (e) => {
         snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
         prevMouseX = x;
         prevMouseY = y;
+        e.preventDefault();
         return;
     }
 
@@ -208,34 +275,67 @@ const drawShape = (x, y) => {
     }
 };
 
-// Fonction pour déplacer l'objet sélectionné
+// Fonction pour déplacer l'objet sélectionné ou redimensionner une image
 const moveElement = (e) => {
-    if (!isMovingElement) return;
-
     const { x, y } = getPointerPosition(e);
-    const dx = x - prevMouseX;
-    const dy = y - prevMouseY;
-    const obj = objects[movingElementIndex];
 
-    // Mettre à jour les coordonnées de l'objet
-    if (obj.type === 'image' || obj.type === 'rectangle' || obj.type === 'circle') {
-        obj.x += dx;
-        obj.y += dy;
-    } else if (obj.type === 'text') {
-        obj.x += dx;
-        obj.y += dy;
-    } else if (obj.type === 'triangle') {
-        obj.x1 += dx;
-        obj.y1 += dy;
-        obj.x2 += dx;
-        obj.y2 += dy;
-        obj.x3 += dx;
-        obj.y3 += dy;
+    if (isResizingImage && movingElementIndex !== -1) {
+        const obj = objects[movingElementIndex];
+        const dx = x - prevMouseX;
+        const dy = y - prevMouseY;
+
+        switch (resizingCorner) {
+            case 'top-left':
+                obj.x += dx;
+                obj.y += dy;
+                obj.width -= dx;
+                obj.height -= dy;
+                break;
+            case 'top-right':
+                obj.y += dy;
+                obj.width += dx;
+                obj.height -= dy;
+                break;
+            case 'bottom-left':
+                obj.x += dx;
+                obj.width -= dx;
+                obj.height += dy;
+                break;
+            case 'bottom-right':
+                obj.width += dx;
+                obj.height += dy;
+                break;
+        }
+        redrawCanvas();
+        prevMouseX = x;
+        prevMouseY = y;
+    } else if (isMovingElement && movingElementIndex !== -1) {
+        const dx = x - prevMouseX;
+        const dy = y - prevMouseY;
+        const obj = objects[movingElementIndex];
+
+        // Mettre à jour les coordonnées de l'objet
+        if (obj.type === 'image' || obj.type === 'rectangle' || obj.type === 'circle') {
+            obj.x += dx;
+            obj.y += dy;
+        } else if (obj.type === 'text') {
+            obj.x += dx;
+            obj.y += dy;
+        } else if (obj.type === 'triangle') {
+            obj.x1 += dx;
+            obj.y1 += dy;
+            obj.x2 += dx;
+            obj.y2 += dy;
+            obj.x3 += dx;
+            obj.y3 += dy;
+        }
+
+        redrawCanvas();
+        prevMouseX = x;
+        prevMouseY = y;
+    } else if (isDrawing) {
+        drawShape(x, y);
     }
-
-    redrawCanvas();
-    prevMouseX = x;
-    prevMouseY = y;
 };
 
 // Fonction pour arrêter le dessin ou le déplacement
@@ -246,7 +346,9 @@ const stopDrawOrMove = () => {
     }
     isDrawing = false;
     isMovingElement = false;
+    isResizingImage = false;
     movingElementIndex = -1;
+    resizingCorner = null;
 };
 
 // Gestion des événements pour sélectionner un outil
@@ -333,15 +435,26 @@ saveImg.addEventListener("click", () => {
 });
 
 // Gestion des événements pour dessiner ou déplacer les objets
-canvas.addEventListener("mousedown", startDrawOrMove);
-canvas.addEventListener("mousemove", (e) => {
-    const { x, y } = getPointerPosition(e);
-    if (isDrawing) {
-        drawShape(x, y);
-    } else if (isMovingElement) {
-        moveElement(e);
-    }
+
+// Pour les écrans tactiles
+canvas.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    startDrawOrMove(e);
 });
+
+canvas.addEventListener("touchmove", (e) => {
+    e.preventDefault();
+    moveElement(e);
+});
+
+canvas.addEventListener("touchend", (e) => {
+    e.preventDefault();
+    stopDrawOrMove();
+});
+
+// Pour les écrans non tactiles
+canvas.addEventListener("mousedown", startDrawOrMove);
+canvas.addEventListener("mousemove", moveElement);
 canvas.addEventListener("mouseup", stopDrawOrMove);
 
 // Initialisation de l'arrière-plan du canevas lors du chargement de la page
