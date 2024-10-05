@@ -12,22 +12,20 @@ const canvas = document.querySelector("canvas"),
     fontFamilySelect = document.querySelector("#font-family"),
     fontWeightSelect = document.querySelector("#font-weight"),
     textColorInput = document.querySelector("#text-color"),
-    underlineCheckbox = document.querySelector("#underline"),
-    borderCheckbox = document.querySelector("#border"),
     uploadImageInput = document.querySelector("#upload-image"),
-    textProperties = document.querySelector(".text-properties"),
     ctx = canvas.getContext("2d", { willReadFrequently: true });
 
-// Variables globales avec valeurs par défaut
-let prevMouseX, prevMouseY, snapshot,
-    isDrawing = false,
+// Variables globales pour stocker les objets et gérer les événements
+let isDrawing = false,
     selectedTool = "brush",
     brushWidth = 5,
     selectedColor = "#000",
-    uploadedImage = null,
-    imageX = 50, imageY = 50, imageWidth = 200, imageHeight = 150,
-    isResizingImage = false, isMovingImage = false,
-    isMovingText = false, selectedTextX, selectedTextY;
+    isMovingElement = false,
+    movingElementIndex = -1,
+    objects = [], // Liste des objets (images, textes, formes)
+    snapshot,
+    prevMouseX, prevMouseY,
+    currentShape = null; // Pour stocker temporairement la forme dessinée
 
 // Fonction pour définir l'arrière-plan du canevas en blanc
 const setCanvasBackground = () => {
@@ -46,222 +44,217 @@ const getPointerPosition = (e) => {
 };
 
 // Fonction pour dessiner un rectangle
-const drawRect = (e) => {
-    const { x, y } = getPointerPosition(e);
+const drawRect = (object) => {
     ctx.beginPath();
-    if (!fillColor.checked) {
-        return ctx.strokeRect(prevMouseX, prevMouseY, x - prevMouseX, y - prevMouseY);
+    ctx.strokeStyle = object.color;
+    ctx.lineWidth = object.lineWidth;
+    if (object.fill) {
+        ctx.fillStyle = object.color;
+        ctx.fillRect(object.x, object.y, object.width, object.height);
+    } else {
+        ctx.strokeRect(object.x, object.y, object.width, object.height);
     }
-    ctx.fillRect(prevMouseX, prevMouseY, x - prevMouseX, y - prevMouseY);
 };
 
 // Fonction pour dessiner un cercle
-const drawCircle = (e) => {
-    const { x, y } = getPointerPosition(e);
+const drawCircle = (object) => {
     ctx.beginPath();
-    let radius = Math.sqrt(Math.pow((prevMouseX - x), 2) + Math.pow((prevMouseY - y), 2));
-    ctx.arc(prevMouseX, prevMouseY, radius, 0, 2 * Math.PI);
-    fillColor.checked ? ctx.fill() : ctx.stroke();
+    ctx.strokeStyle = object.color;
+    ctx.lineWidth = object.lineWidth;
+    ctx.arc(object.x, object.y, object.radius, 0, 2 * Math.PI);
+    if (object.fill) {
+        ctx.fillStyle = object.color;
+        ctx.fill();
+    } else {
+        ctx.stroke();
+    }
 };
 
 // Fonction pour dessiner un triangle
-const drawTriangle = (e) => {
-    const { x, y } = getPointerPosition(e);
+const drawTriangle = (object) => {
     ctx.beginPath();
-    ctx.moveTo(prevMouseX, prevMouseY);
-    ctx.lineTo(x, y);
-    ctx.lineTo(prevMouseX * 2 - x, y);
+    ctx.moveTo(object.x1, object.y1);
+    ctx.lineTo(object.x2, object.y2);
+    ctx.lineTo(object.x3, object.y3);
     ctx.closePath();
-    fillColor.checked ? ctx.fill() : ctx.stroke();
+    ctx.strokeStyle = object.color;
+    ctx.lineWidth = object.lineWidth;
+    if (object.fill) {
+        ctx.fillStyle = object.color;
+        ctx.fill();
+    } else {
+        ctx.stroke();
+    }
 };
 
-// Fonction pour démarrer le dessin
-const startDraw = (e) => {
+// Fonction pour dessiner un texte
+const drawText = (object) => {
+    ctx.font = `${object.fontWeight} ${object.fontSize}px ${object.fontFamily}`;
+    ctx.fillStyle = object.color;
+    ctx.fillText(object.text, object.x, object.y);
+};
+
+// Fonction pour dessiner une image
+const drawImage = (object) => {
+    if (object.image) {
+        ctx.drawImage(object.image, object.x, object.y, object.width, object.height);
+    }
+};
+
+// Fonction pour redessiner tous les objets sur le canevas
+const redrawCanvas = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // Effacer le canevas
+    setCanvasBackground(); // Réinitialiser le fond blanc
+
+    objects.forEach(object => {
+        switch (object.type) {
+            case 'rectangle':
+                drawRect(object);
+                break;
+            case 'circle':
+                drawCircle(object);
+                break;
+            case 'triangle':
+                drawTriangle(object);
+                break;
+            case 'text':
+                drawText(object);
+                break;
+            case 'image':
+                drawImage(object);
+                break;
+        }
+    });
+};
+
+// Fonction pour démarrer le dessin ou le déplacement d'un élément
+const startDrawOrMove = (e) => {
+    const { x, y } = getPointerPosition(e);
+
+    // Vérifier si l'utilisateur clique sur un objet pour le déplacer
+    movingElementIndex = objects.findIndex(obj => {
+        if (obj.type === 'image') {
+            return x > obj.x && x < obj.x + obj.width && y > obj.y && y < obj.y + obj.height;
+        } else if (obj.type === 'text') {
+            const textWidth = ctx.measureText(obj.text).width;
+            const textHeight = parseInt(obj.fontSize);
+            return x > obj.x && x < obj.x + textWidth && y > obj.y - textHeight && y < obj.y;
+        } else if (obj.type === 'rectangle') {
+            return x > obj.x && x < obj.x + obj.width && y > obj.y && y < obj.y + obj.height;
+        } else if (obj.type === 'circle') {
+            let distance = Math.sqrt(Math.pow(obj.x - x, 2) + Math.pow(obj.y - y, 2));
+            return distance <= obj.radius;
+        } else if (obj.type === 'triangle') {
+            let minX = Math.min(obj.x1, obj.x2, obj.x3);
+            let maxX = Math.max(obj.x1, obj.x2, obj.x3);
+            let minY = Math.min(obj.y1, obj.y2, obj.y3);
+            let maxY = Math.max(obj.y1, obj.y2, obj.y3);
+            return x >= minX && x <= maxX && y >= minY && y <= maxY;
+        }
+        return false;
+    });
+
+    if (movingElementIndex !== -1) {
+        isMovingElement = true;
+        snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        prevMouseX = x;
+        prevMouseY = y;
+        return;
+    }
+
+    // Si aucun élément n'est sélectionné pour le déplacement, on commence à dessiner une nouvelle forme
     isDrawing = true;
-    const { x, y } = getPointerPosition(e);
     prevMouseX = x;
     prevMouseY = y;
-    ctx.beginPath();
-    ctx.lineWidth = brushWidth;
-    ctx.strokeStyle = selectedColor;
-    ctx.fillStyle = selectedColor;
-    snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height); // Prendre une capture de l'état actuel
-};
+    snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-// Fonction pour continuer le dessin en fonction de l'outil sélectionné
-const drawing = (e) => {
-    if (!isDrawing) return;
-    const { x, y } = getPointerPosition(e);
-    ctx.putImageData(snapshot, 0, 0);
-
-    if (selectedTool === "brush" || selectedTool === "eraser") {
-        ctx.strokeStyle = selectedTool === "eraser" ? "#fff" : selectedColor;
-        ctx.lineTo(x, y);
-        ctx.stroke();
-    } else if (selectedTool === "rectangle") {
-        drawRect(e);
-    } else if (selectedTool === "circle") {
-        drawCircle(e);
-    } else if (selectedTool === "triangle") {
-        drawTriangle(e);
-    }
-};
-
-// Fonction pour arrêter le dessin
-const stopDraw = () => {
-    isDrawing = false;
-};
-
-// Fonction pour ajouter du texte sur le canevas
-const addTextToCanvas = (e) => {
-    const text = textInput.value;
-    if (!text) return; // Ne pas ajouter de texte si le champ est vide
-
-    selectedTextX = getPointerPosition(e).x;
-    selectedTextY = getPointerPosition(e).y;
-
-    const fontSize = fontSizeInput.value;
-    const fontFamily = fontFamilySelect.value;
-    const fontWeight = fontWeightSelect.value;
-    const textColor = textColorInput.value;
-    const underline = underlineCheckbox.checked;
-    const border = borderCheckbox.checked;
-
-    ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
-    ctx.fillStyle = textColor;
-    ctx.textBaseline = "top";
-    ctx.fillText(text, selectedTextX, selectedTextY);
-
-    // Ajouter un encadré autour du texte si nécessaire
-    if (border) {
-        const textWidth = ctx.measureText(text).width;
-        const textHeight = fontSize; // Estimation de la hauteur de texte
-        ctx.strokeStyle = textColor;
-        ctx.strokeRect(selectedTextX, selectedTextY, textWidth, textHeight);
-    }
-
-    // Ajouter un soulignement si nécessaire
-    if (underline) {
-        const textWidth = ctx.measureText(text).width;
-        ctx.beginPath();
-        ctx.moveTo(selectedTextX, selectedTextY + parseInt(fontSize));
-        ctx.lineTo(selectedTextX + textWidth, selectedTextY + parseInt(fontSize));
-        ctx.strokeStyle = textColor;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-    }
-};
-
-// Fonction pour gérer l'importation d'une image
-uploadImageInput.addEventListener("change", (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-        const img = new Image();
-        img.src = reader.result;
-        img.onload = () => {
-            uploadedImage = img;
-            drawImage();
-        };
+    // Initialiser la forme en cours
+    currentShape = {
+        type: selectedTool,
+        color: selectedColor,
+        fill: fillColor.checked,
+        lineWidth: brushWidth
     };
-    reader.readAsDataURL(file);
-});
-
-const drawImage = () => {
-    if (!uploadedImage) return;
-    ctx.drawImage(uploadedImage, imageX, imageY, imageWidth, imageHeight);
 };
 
-// Gestion du déplacement et redimensionnement de l'image
-canvas.addEventListener("mousedown", (e) => {
-    const { x, y } = getPointerPosition(e);
-    
-    // Vérifier si l'utilisateur clique sur l'image pour la déplacer
-    if (x > imageX && x < imageX + imageWidth && y > imageY && y < imageY + imageHeight) {
-        isMovingImage = true;
-        prevMouseX = x;
-        prevMouseY = y;
-        snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+// Fonction pour dessiner la forme en fonction de l'outil sélectionné
+const drawShape = (x, y) => {
+    if (!isDrawing) return;
+    ctx.putImageData(snapshot, 0, 0); // Restaurer l'état précédent avant de dessiner la forme
+
+    switch (selectedTool) {
+        case 'rectangle':
+            currentShape.x = Math.min(prevMouseX, x);
+            currentShape.y = Math.min(prevMouseY, y);
+            currentShape.width = Math.abs(x - prevMouseX);
+            currentShape.height = Math.abs(y - prevMouseY);
+            drawRect(currentShape);
+            break;
+        case 'circle':
+            currentShape.x = prevMouseX;
+            currentShape.y = prevMouseY;
+            currentShape.radius = Math.sqrt(Math.pow((x - prevMouseX), 2) + Math.pow((y - prevMouseY), 2));
+            drawCircle(currentShape);
+            break;
+        case 'triangle':
+            currentShape.x1 = prevMouseX;
+            currentShape.y1 = prevMouseY;
+            currentShape.x2 = x;
+            currentShape.y2 = y;
+            currentShape.x3 = 2 * prevMouseX - x;
+            currentShape.y3 = y;
+            drawTriangle(currentShape);
+            break;
     }
+};
 
-    // Vérifier si l'utilisateur clique sur le texte pour le déplacer
-    if (x > selectedTextX && x < selectedTextX + ctx.measureText(textInput.value).width && y > selectedTextY && y < selectedTextY + fontSizeInput.value) {
-        isMovingText = true;
-        prevMouseX = x;
-        prevMouseY = y;
-        snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    }
-});
-
-canvas.addEventListener("mousemove", (e) => {
-    if (!isMovingImage && !isMovingText) return;
-
-    const { x, y } = getPointerPosition(e);
-    ctx.putImageData(snapshot, 0, 0);
-
-    // Déplacer l'image
-    if (isMovingImage) {
-        imageX += x - prevMouseX;
-        imageY += y - prevMouseY;
-        prevMouseX = x;
-        prevMouseY = y;
-        drawImage();
-    }
-
-    // Déplacer le texte
-    if (isMovingText) {
-        selectedTextX += x - prevMouseX;
-        selectedTextY += y - prevMouseY;
-        prevMouseX = x;
-        prevMouseY = y;
-        ctx.fillText(textInput.value, selectedTextX, selectedTextY);
-    }
-});
-
-canvas.addEventListener("mouseup", () => {
-    isMovingImage = false;
-    isMovingText = false;
-});
-
-// Gestion du redimensionnement de l'image (avec la touche "Shift")
-canvas.addEventListener("mousedown", (e) => {
-    const { x, y } = getPointerPosition(e);
-
-    // Si l'utilisateur appuie sur Shift + clic sur l'image, commencer à redimensionner
-    if (e.shiftKey && x > imageX && x < imageX + imageWidth && y > imageY && y < imageY + imageHeight) {
-        isResizingImage = true;
-        prevMouseX = x;
-        prevMouseY = y;
-        snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    }
-});
-
-canvas.addEventListener("mousemove", (e) => {
-    if (!isResizingImage) return;
+// Fonction pour déplacer l'objet sélectionné
+const moveElement = (e) => {
+    if (!isMovingElement) return;
 
     const { x, y } = getPointerPosition(e);
-    ctx.putImageData(snapshot, 0, 0);
+    const dx = x - prevMouseX;
+    const dy = y - prevMouseY;
+    const obj = objects[movingElementIndex];
 
-    // Redimensionner l'image
-    imageWidth += x - prevMouseX;
-    imageHeight += y - prevMouseY;
+    // Mettre à jour les coordonnées de l'objet
+    if (obj.type === 'image' || obj.type === 'rectangle' || obj.type === 'circle') {
+        obj.x += dx;
+        obj.y += dy;
+    } else if (obj.type === 'text') {
+        obj.x += dx;
+        obj.y += dy;
+    } else if (obj.type === 'triangle') {
+        obj.x1 += dx;
+        obj.y1 += dy;
+        obj.x2 += dx;
+        obj.y2 += dy;
+        obj.x3 += dx;
+        obj.y3 += dy;
+    }
+
+    redrawCanvas();
     prevMouseX = x;
     prevMouseY = y;
-    drawImage();
-});
+};
 
-canvas.addEventListener("mouseup", () => {
-    isResizingImage = false;
-});
+// Fonction pour arrêter le dessin ou le déplacement
+const stopDrawOrMove = () => {
+    if (isDrawing) {
+        // Ajouter la forme au tableau des objets
+        objects.push(currentShape);
+    }
+    isDrawing = false;
+    isMovingElement = false;
+    movingElementIndex = -1;
+};
 
 // Gestion des événements pour sélectionner un outil
 toolBtns.forEach(btn => {
     btn.addEventListener("click", () => {
         document.querySelector(".options .active").classList.remove("active");
         btn.classList.add("active");
-        selectedTool = btn.id;
+        selectedTool = btn.id; // Définir l'outil sélectionné
     });
 });
 
@@ -283,9 +276,51 @@ colorPicker.addEventListener("change", () => {
     colorPicker.parentElement.click();
 });
 
+// Fonction pour ajouter du texte sur le canevas
+addTextBtn.addEventListener("click", () => {
+    const newText = {
+        type: 'text',
+        text: textInput.value,
+        x: 50,
+        y: 50,
+        fontSize: fontSizeInput.value,
+        fontFamily: fontFamilySelect.value,
+        fontWeight: fontWeightSelect.value,
+        color: textColorInput.value
+    };
+    objects.push(newText);
+    redrawCanvas(); // Redessiner le canevas avec le nouveau texte
+});
+
+// Fonction pour gérer l'importation d'une image
+uploadImageInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        const img = new Image();
+        img.src = reader.result;
+        img.onload = () => {
+            const newImage = {
+                type: 'image',
+                image: img,
+                x: 50,
+                y: 50,
+                width: img.width / 2,
+                height: img.height / 2
+            };
+            objects.push(newImage);
+            redrawCanvas(); // Redessiner le canevas avec la nouvelle image
+        };
+    };
+    reader.readAsDataURL(file);
+});
+
 // Effacer le canevas
 clearCanvas.addEventListener("click", () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    objects = []; // Réinitialiser tous les objets
     setCanvasBackground();
 });
 
@@ -297,10 +332,17 @@ saveImg.addEventListener("click", () => {
     link.click();
 });
 
-// Gestion du bouton Ajouter du texte
-addTextBtn.addEventListener("click", () => {
-    canvas.addEventListener("mousedown", addTextToCanvas, { once: true });
+// Gestion des événements pour dessiner ou déplacer les objets
+canvas.addEventListener("mousedown", startDrawOrMove);
+canvas.addEventListener("mousemove", (e) => {
+    const { x, y } = getPointerPosition(e);
+    if (isDrawing) {
+        drawShape(x, y);
+    } else if (isMovingElement) {
+        moveElement(e);
+    }
 });
+canvas.addEventListener("mouseup", stopDrawOrMove);
 
 // Initialisation de l'arrière-plan du canevas lors du chargement de la page
 window.addEventListener("load", () => {
@@ -308,9 +350,3 @@ window.addEventListener("load", () => {
     canvas.height = canvas.offsetHeight;
     setCanvasBackground();
 });
-
-// Stop drawing on mouse up or out of canvas
-canvas.addEventListener("mouseup", stopDraw);
-canvas.addEventListener("mouseout", stopDraw);
-canvas.addEventListener("mousedown", startDraw);
-canvas.addEventListener("mousemove", drawing);
